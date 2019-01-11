@@ -99,18 +99,19 @@ Node::Node(
     carto::metrics::RegisterAllMetrics(metrics_registry_.get());
   }
 
-  submap_list_publisher_ =
+  submap_list_publisher_ =//注册SubmapList类型消息发布器，发布submap
       node_handle_.advertise<::cartographer_ros_msgs::SubmapList>(
           kSubmapListTopic, kLatestOnlyPublisherQueueSize);
-  trajectory_node_list_publisher_ =
+  trajectory_node_list_publisher_ =//注册MarkerArray类型消息发布器，用于标注轨迹节点
       node_handle_.advertise<::visualization_msgs::MarkerArray>(
           kTrajectoryNodeListTopic, kLatestOnlyPublisherQueueSize);
-  landmark_poses_list_publisher_ =
+  landmark_poses_list_publisher_ =//注册MarkerArray类型消息发布器，用于标注landmark位姿
       node_handle_.advertise<::visualization_msgs::MarkerArray>(
           kLandmarkPosesListTopic, kLatestOnlyPublisherQueueSize);
-  constraint_list_publisher_ =
+  constraint_list_publisher_ =//注册MarkerArray类型消息发布器，用于标注约束信息
       node_handle_.advertise<::visualization_msgs::MarkerArray>(
           kConstraintListTopic, kLatestOnlyPublisherQueueSize);
+  //注册节点Service
   service_servers_.push_back(node_handle_.advertiseService(
       kSubmapQueryServiceName, &Node::HandleSubmapQuery, this));
   service_servers_.push_back(node_handle_.advertiseService(
@@ -124,14 +125,16 @@ Node::Node(
   service_servers_.push_back(node_handle_.advertiseService(
       kReadMetricsServiceName, &Node::HandleReadMetrics, this));
 
-  scan_matched_point_cloud_publisher_ =
+  scan_matched_point_cloud_publisher_ =//注册PointCloud2类型消息发布器，
       node_handle_.advertise<sensor_msgs::PointCloud2>(
           kScanMatchedPointCloudTopic, kLatestOnlyPublisherQueueSize);
-
+  
+  // We have to keep the timer handles of ::ros::WallTimers around, otherwise
+  // they do not fire.
   wall_timers_.push_back(node_handle_.createWallTimer(
       ::ros::WallDuration(node_options_.submap_publish_period_sec),
       &Node::PublishSubmapList, this));
-  if (node_options_.pose_publish_period_sec > 0) {
+  if (node_options_.pose_publish_period_sec > 0) {//如果pose_publish_period_sec设置了非0时间，创建一个定时器定时调用PublishLocalTrajectoryData
     publish_local_trajectory_data_timer_ = node_handle_.createTimer(
         ::ros::Duration(node_options_.pose_publish_period_sec),
         &Node::PublishLocalTrajectoryData, this);
@@ -386,9 +389,9 @@ int Node::AddTrajectory(const TrajectoryOptions& options,
       expected_sensor_ids = ComputeExpectedSensorIds(options, topics);//根据配置获取期望的SensorId，SensorId中包含了类型和topic id
   const int trajectory_id =
       map_builder_bridge_.AddTrajectory(expected_sensor_ids, options);//通过cartographer::mapping::MapBuilderInterface接口函数AddTrajectoryBuilder添加跟踪
-  AddExtrapolator(trajectory_id, options);
-  AddSensorSamplers(trajectory_id, options);
-  LaunchSubscribers(options, topics, trajectory_id);
+  AddExtrapolator(trajectory_id, options);//添加外推器
+  AddSensorSamplers(trajectory_id, options);//添加传感器采集器
+  LaunchSubscribers(options, topics, trajectory_id);//运行消息订阅器
   wall_timers_.push_back(node_handle_.createWallTimer(
       ::ros::WallDuration(kTopicMismatchCheckDelaySec),
       &Node::MaybeWarnAboutTopicMismatch, this, /*oneshot=*/true));
@@ -401,10 +404,10 @@ int Node::AddTrajectory(const TrajectoryOptions& options,
 void Node::LaunchSubscribers(const TrajectoryOptions& options,
                              const cartographer_ros_msgs::SensorTopics& topics,
                              const int trajectory_id) {
-  for (const std::string& topic : ComputeRepeatedTopicNames(
+  for (const std::string& topic : ComputeRepeatedTopicNames(//ComputeRepeatedTopicNames对相同的topic名称添加序号得到名称序列
            topics.laser_scan_topic, options.num_laser_scans)) {
     subscribers_[trajectory_id].push_back(
-        {SubscribeWithHandler<sensor_msgs::LaserScan>(
+        {SubscribeWithHandler<sensor_msgs::LaserScan>(//激光扫描
              &Node::HandleLaserScanMessage, trajectory_id, topic, &node_handle_,
              this),
          topic});//订阅topic，并将Subscriber和topic名称构成的结构体存入subscribers_容器中
@@ -413,32 +416,32 @@ void Node::LaunchSubscribers(const TrajectoryOptions& options,
        ComputeRepeatedTopicNames(topics.multi_echo_laser_scan_topic,
                                  options.num_multi_echo_laser_scans)) {
     subscribers_[trajectory_id].push_back(
-        {SubscribeWithHandler<sensor_msgs::MultiEchoLaserScan>(
+        {SubscribeWithHandler<sensor_msgs::MultiEchoLaserScan>(//多回波激光扫描
              &Node::HandleMultiEchoLaserScanMessage, trajectory_id, topic,
              &node_handle_, this),
-         topic});
+         topic});//订阅topic，并将Subscriber和topic名称构成的结构体存入subscribers_容器中
   }
   for (const std::string& topic : ComputeRepeatedTopicNames(
            topics.point_cloud2_topic, options.num_point_clouds)) {
     subscribers_[trajectory_id].push_back(
-        {SubscribeWithHandler<sensor_msgs::PointCloud2>(
+        {SubscribeWithHandler<sensor_msgs::PointCloud2>(//点云
              &Node::HandlePointCloud2Message, trajectory_id, topic,
              &node_handle_, this),
-         topic});
+         topic});//订阅topic，并将Subscriber和topic名称构成的结构体存入subscribers_容器中
   }
 
   // For 2D SLAM, subscribe to the IMU if we expect it. For 3D SLAM, the IMU is
   // required.
-  if (node_options_.map_builder_options.use_trajectory_builder_3d() ||
+  if (node_options_.map_builder_options.use_trajectory_builder_3d() ||//map_builder配置轨迹跟踪为3d模式  或者  2d模式下轨迹跟踪器配置了使用imu
       (node_options_.map_builder_options.use_trajectory_builder_2d() &&
        options.trajectory_builder_options.trajectory_builder_2d_options()
            .use_imu_data())) {
     std::string topic = topics.imu_topic;
     subscribers_[trajectory_id].push_back(
-        {SubscribeWithHandler<sensor_msgs::Imu>(&Node::HandleImuMessage,
+        {SubscribeWithHandler<sensor_msgs::Imu>(&Node::HandleImuMessage,//IMU数据
                                                 trajectory_id, topic,
                                                 &node_handle_, this),
-         topic});
+         topic});//订阅topic，并将Subscriber和topic名称构成的结构体存入subscribers_容器中
   }
 
   if (options.use_odometry) {
@@ -447,23 +450,23 @@ void Node::LaunchSubscribers(const TrajectoryOptions& options,
         {SubscribeWithHandler<nav_msgs::Odometry>(&Node::HandleOdometryMessage,
                                                   trajectory_id, topic,
                                                   &node_handle_, this),
-         topic});
+         topic});//订阅topic，并将Subscriber和topic名称构成的结构体存入subscribers_容器中
   }
   if (options.use_nav_sat) {
     std::string topic = topics.nav_sat_fix_topic;
     subscribers_[trajectory_id].push_back(
-        {SubscribeWithHandler<sensor_msgs::NavSatFix>(
+        {SubscribeWithHandler<sensor_msgs::NavSatFix>(//卫星导航
              &Node::HandleNavSatFixMessage, trajectory_id, topic, &node_handle_,
              this),
-         topic});
+         topic});//订阅topic，并将Subscriber和topic名称构成的结构体存入subscribers_容器中
   }
   if (options.use_landmarks) {
     std::string topic = topics.landmark_topic;
     subscribers_[trajectory_id].push_back(
-        {SubscribeWithHandler<cartographer_ros_msgs::LandmarkList>(
+        {SubscribeWithHandler<cartographer_ros_msgs::LandmarkList>(//landmark
              &Node::HandleLandmarkMessage, trajectory_id, topic, &node_handle_,
              this),
-         topic});
+         topic});//订阅topic，并将Subscriber和topic名称构成的结构体存入subscribers_容器中
   }
 }
 

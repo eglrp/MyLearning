@@ -121,27 +121,32 @@ int MapBuilderBridge::AddTrajectory(
     const std::set<cartographer::mapping::TrajectoryBuilderInterface::SensorId>&
         expected_sensor_ids,
     const TrajectoryOptions& trajectory_options) {
-  const int trajectory_id = map_builder_->AddTrajectoryBuilder(
+  const int trajectory_id = map_builder_->AddTrajectoryBuilder(//参数为期望的sensorid，配置，回调函数
       expected_sensor_ids, trajectory_options.trajectory_builder_options,
+	  //using LocalSlamResultCallback =
+      //std::function<void(int /* trajectory ID */, common::Time,
+      //                   transform::Rigid3d /* local pose estimate */,
+      //                   sensor::RangeData /* in local frame */,
+      //                   std::unique_ptr<const InsertionResult>)>;
       [this](const int trajectory_id, const ::cartographer::common::Time time,//此处是MapBuilder::AddTrajectoryBuilder中的回调函数LocalSlamResultCallback
              const Rigid3d local_pose,
              ::cartographer::sensor::RangeData range_data_in_local,
              const std::unique_ptr<
                  const ::cartographer::mapping::TrajectoryBuilderInterface::
                      InsertionResult>) {
-        OnLocalSlamResult(trajectory_id, time, local_pose, range_data_in_local);
+        OnLocalSlamResult(trajectory_id, time, local_pose, range_data_in_local);//回调函数执行的内容
       });
   LOG(INFO) << "Added trajectory with ID '" << trajectory_id << "'.";
 
   // Make sure there is no trajectory with 'trajectory_id' yet.
   CHECK_EQ(sensor_bridges_.count(trajectory_id), 0);
-  sensor_bridges_[trajectory_id] = absl::make_unique<SensorBridge>(
+  sensor_bridges_[trajectory_id] = absl::make_unique<SensorBridge>(//添加sensor_bridges_对象
       trajectory_options.num_subdivisions_per_laser_scan,
       trajectory_options.tracking_frame,
       node_options_.lookup_transform_timeout_sec, tf_buffer_,
-      map_builder_->GetTrajectoryBuilder(trajectory_id));
+      map_builder_->GetTrajectoryBuilder(trajectory_id));//从map_builder_中获取trajectory_builder指针，CollatedTrajectoryBuilder类型
   auto emplace_result =
-      trajectory_options_.emplace(trajectory_id, trajectory_options);
+      trajectory_options_.emplace(trajectory_id, trajectory_options);//将trajectory_id和trajectory_options加入到trajectory_options存储容器unordered_map中
   CHECK(emplace_result.second == true);
   return trajectory_id;
 }

@@ -30,13 +30,13 @@
 namespace cartographer {
 namespace mapping {
 
-std::unique_ptr<TrajectoryBuilderInterface> CreateGlobalTrajectoryBuilder2D(
+std::unique_ptr<TrajectoryBuilderInterface> CreateGlobalTrajectoryBuilder2D(//创建一个2D的轨迹生成器
     std::unique_ptr<LocalTrajectoryBuilder2D> local_trajectory_builder,
     const int trajectory_id, mapping::PoseGraph2D* const pose_graph,
     const TrajectoryBuilderInterface::LocalSlamResultCallback&
         local_slam_result_callback);
 
-std::unique_ptr<TrajectoryBuilderInterface> CreateGlobalTrajectoryBuilder3D(
+std::unique_ptr<TrajectoryBuilderInterface> CreateGlobalTrajectoryBuilder3D(//创建一个3D的轨迹生成器
     std::unique_ptr<LocalTrajectoryBuilder3D> local_trajectory_builder,
     const int trajectory_id, mapping::PoseGraph3D* const pose_graph,
     const TrajectoryBuilderInterface::LocalSlamResultCallback&

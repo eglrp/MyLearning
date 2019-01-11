@@ -119,6 +119,11 @@ int MapBuilder::AddTrajectoryBuilder(
     const proto::TrajectoryBuilderOptions& trajectory_options,
     LocalSlamResultCallback local_slam_result_callback) {
 	// MapBuilder的父类MapBuilderInterface中定义 using LocalSlamResultCallback =      TrajectoryBuilderInterface::LocalSlamResultCallback;
+	//using LocalSlamResultCallback =
+	//	std::function<void(int /* trajectory ID */, common::Time,
+	//					   transform::Rigid3d /* local pose estimate */,
+	//					   sensor::RangeData /* in local frame */,
+	//					   std::unique_ptr<const InsertionResult>)>;
   const int trajectory_id = trajectory_builders_.size();
   if (options_.use_trajectory_builder_3d()) {
     std::unique_ptr<LocalTrajectoryBuilder3D> local_trajectory_builder;
@@ -131,7 +136,7 @@ int MapBuilder::AddTrajectoryBuilder(
     trajectory_builders_.push_back(absl::make_unique<CollatedTrajectoryBuilder>(
         trajectory_options, sensor_collator_.get(), trajectory_id,
         expected_sensor_ids,
-        CreateGlobalTrajectoryBuilder3D(
+        CreateGlobalTrajectoryBuilder3D(//创建一个轨迹生成器并返回其指针
             std::move(local_trajectory_builder), trajectory_id,
             static_cast<PoseGraph3D*>(pose_graph_.get()),
             local_slam_result_callback)));

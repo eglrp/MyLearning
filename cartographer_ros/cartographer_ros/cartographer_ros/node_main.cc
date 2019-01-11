@@ -57,17 +57,18 @@ MapBuilderBridge中AddTrajectory调用接口类cartographer::mapping::MapBuilderInterf
 
 MapBuilderBridge中LoadState调用接口类cartographer::mapping::MapBuilderInterface类的指针变量map_builder_的函数map_builder_->LoadState
 
-MapBuilderBridge中的sensor_bridges_对象定义了接口类::cartographer::mapping::TrajectoryBuilderInterface* const指针变量trajectory_builder_，实现传感器数据的连接;
+MapBuilderBridge中的sensor_bridges_对象定义了接口类::cartographer::mapping::TrajectoryBuilderInterface* const指针变量trajectory_builder_，实现传感器数据的连接
+trajectory_builder_指针从map_builder_中获得，为CollatedTrajectoryBuilder类的指针
 程序主题流程为node初始化相应主题后，相应的handle调用sensor_bridges_中的接口函数trajectory_builder_->AddSensorData。
 
 */
 
 void Run() {//入口函数
   constexpr double kTfBufferCacheTimeInSeconds = 10.;
-  tf2_ros::Buffer tf_buffer{::ros::Duration(kTfBufferCacheTimeInSeconds)};
+  tf2_ros::Buffer tf_buffer{::ros::Duration(kTfBufferCacheTimeInSeconds)};//创建10s的缓冲器
   tf2_ros::TransformListener tf(tf_buffer);//接收tf广播信息，缓冲10s
-  NodeOptions node_options;
-  TrajectoryOptions trajectory_options;
+  NodeOptions node_options;//节点配置信息对象
+  TrajectoryOptions trajectory_options;//轨迹跟踪配置信息对象
   std::tie(node_options, trajectory_options) =
       LoadOptions(FLAGS_configuration_directory, FLAGS_configuration_basename);//读取配置信息，节点配置，轨迹配置
 
@@ -75,11 +76,11 @@ void Run() {//入口函数
       node_options.map_builder_options);//定义cartographer::mapping::MapBuilder类的智能指针
   Node node(node_options, std::move(map_builder), &tf_buffer,
             FLAGS_collect_metrics);//创建node，用于将ROS和SLAM进行连接
-  if (!FLAGS_load_state_filename.empty()) {
+  if (!FLAGS_load_state_filename.empty()) {//如果有load_state_filename
     node.LoadState(FLAGS_load_state_filename, FLAGS_load_frozen_state);//加载状态信息，最终调用map_builder_->LoadState
   }
 
-  if (FLAGS_start_trajectory_with_default_topics) {
+  if (FLAGS_start_trajectory_with_default_topics) {//start_trajectory_with_default_topics为真
     node.StartTrajectoryWithDefaultTopics(trajectory_options);//初始化相应的topic，开始跟踪
   }
 
