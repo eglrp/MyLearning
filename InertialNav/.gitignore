@@ -1,0 +1,8 @@
+/plots/*.fig
+/plots/*.eps
+/plots/*.pdf
+/scripts/*.mexw64
+slprj
+.DS_Store
+*.asv
+

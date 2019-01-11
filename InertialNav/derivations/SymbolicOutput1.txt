@@ -1,0 +1,26 @@
+
+SH_LOS = zeros(1,1);
+SH_LOS(1) = 1/range;
+
+
+
+H_LOS = zeros(1,1);
+H_LOS(1) = omegaX + SH_LOS(1)*(Tnb_l_2_c_2_r_*velE + Tnb_l_2_c_3_r_*velD + Tnb_l_2_c_1_r_*velN);
+
+
+
+H_LOS = zeros(1,1);
+H_LOS(1) = omegaY - SH_LOS(1)*(Tnb_l_1_c_2_r_*velE + Tnb_l_1_c_3_r_*velD + Tnb_l_1_c_1_r_*velN);
+
+SK_LOS = zeros(2,1);
+SK_LOS(1) = omegaY - SH_LOS(1)*(Tnb_l_1_c_2_r_*velE + Tnb_l_1_c_3_r_*velD + Tnb_l_1_c_1_r_*velN);
+SK_LOS(2) = omegaX + SH_LOS(1)*(Tnb_l_2_c_2_r_*velE + Tnb_l_2_c_3_r_*velD + Tnb_l_2_c_1_r_*velN);
+
+Kfusion = zeros(1,1);
+Kfusion = zeros(1,1);
+Kfusion(1) = (OP_l_1_c_1_r_*(omegaX + SH_LOS(1)*(Tnb_l_2_c_2_r_*velE + Tnb_l_2_c_3_r_*velD + Tnb_l_2_c_1_r_*velN)))/(R_LOS + OP_l_1_c_1_r_*(omegaX + SH_LOS(1)*(Tnb_l_2_c_2_r_*velE + Tnb_l_2_c_3_r_*velD + Tnb_l_2_c_1_r_*velN))^2);
+
+
+Kfusion = zeros(1,1);
+Kfusion = zeros(1,1);
+Kfusion(1) = (OP_l_1_c_1_r_*(omegaY - SH_LOS(1)*(Tnb_l_1_c_2_r_*velE + Tnb_l_1_c_3_r_*velD + Tnb_l_1_c_1_r_*velN)))/(R_LOS + OP_l_1_c_1_r_*(omegaY - SH_LOS(1)*(Tnb_l_1_c_2_r_*velE + Tnb_l_1_c_3_r_*velD + Tnb_l_1_c_1_r_*velN))^2);

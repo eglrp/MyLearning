@@ -1,0 +1,4 @@
+*build*/
+bazel-*
+*.si4project
+*.kdev4
