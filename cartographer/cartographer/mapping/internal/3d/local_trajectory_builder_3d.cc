@@ -104,7 +104,7 @@ std::unique_ptr<transform::Rigid3d> LocalTrajectoryBuilder3D::ScanMatch(
 }
 
 void LocalTrajectoryBuilder3D::AddImuData(const sensor::ImuData& imu_data) {
-  if (extrapolator_ != nullptr) {
+  if (extrapolator_ != nullptr) {//std::unique_ptr<mapping::PoseExtrapolator> extrapolator_;
     extrapolator_->AddImuData(imu_data);
     return;
   }
@@ -122,14 +122,14 @@ LocalTrajectoryBuilder3D::AddRangeData(
     const std::string& sensor_id,
     const sensor::TimedPointCloudData& unsynchronized_data) {
   const auto synchronized_data =
-      range_data_collator_.AddRangeData(sensor_id, unsynchronized_data);
+      range_data_collator_.AddRangeData(sensor_id, unsynchronized_data);//将非同步的数据添加到同步器内,返回sensor::TimedPointCloudOriginData
   if (synchronized_data.ranges.empty()) {
     LOG(INFO) << "Range data collator filling buffer.";
     return nullptr;
   }
 
   const common::Time& current_sensor_time = synchronized_data.time;
-  if (extrapolator_ == nullptr) {
+  if (extrapolator_ == nullptr) {//等待有IMU数据以后才运行，否则返回
     // Until we've initialized the extrapolator with our first IMU message, we
     // cannot compute the orientation of the rangefinder.
     LOG(INFO) << "IMU not yet initialized.";
@@ -140,7 +140,7 @@ LocalTrajectoryBuilder3D::AddRangeData(
   CHECK_LE(synchronized_data.ranges.back().point_time.time, 0.f);
   const common::Time time_first_point =
       current_sensor_time +
-      common::FromSeconds(synchronized_data.ranges.front().point_time.time);
+      common::FromSeconds(synchronized_data.ranges.front().point_time.time);//获取第一个点的时间
   if (time_first_point < extrapolator_->GetLastPoseTime()) {
     LOG(INFO) << "Extrapolator is still initializing.";
     return nullptr;
@@ -148,16 +148,16 @@ LocalTrajectoryBuilder3D::AddRangeData(
 
   std::vector<sensor::TimedPointCloudOriginData::RangeMeasurement> hits =
       sensor::VoxelFilter(0.5f * options_.voxel_filter_size())
-          .Filter(synchronized_data.ranges);
+          .Filter(synchronized_data.ranges);//对雷达测量数据进行体素滤波
 
   std::vector<transform::Rigid3f> hits_poses;
   hits_poses.reserve(hits.size());
   bool warned = false;
 
   for (const auto& hit : hits) {
-    common::Time time_point =
+    common::Time time_point =//获取当前点的时间
         current_sensor_time + common::FromSeconds(hit.point_time.time);
-    if (time_point < extrapolator_->GetLastExtrapolatedTime()) {
+    if (time_point < extrapolator_->GetLastExtrapolatedTime()) {//如果当前点时间比上一次处理的时间小，告警
       if (!warned) {
         LOG(ERROR)
             << "Timestamp of individual range data point jumps backwards from "

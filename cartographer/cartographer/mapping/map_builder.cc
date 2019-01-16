@@ -134,9 +134,9 @@ int MapBuilder::AddTrajectoryBuilder(
     }
     DCHECK(dynamic_cast<PoseGraph3D*>(pose_graph_.get()));
     trajectory_builders_.push_back(absl::make_unique<CollatedTrajectoryBuilder>(
-        trajectory_options, sensor_collator_.get(), trajectory_id,
+        trajectory_options, sensor_collator_.get(), trajectory_id,   //sensor_collator_根据配置文件决定是TrajectoryCollator类还是Collator类
         expected_sensor_ids,
-        CreateGlobalTrajectoryBuilder3D(//创建一个轨迹生成器并返回其指针
+        CreateGlobalTrajectoryBuilder3D(//创建一个轨迹生成器并返回其指针。指针类型GlobalTrajectoryBuilder
             std::move(local_trajectory_builder), trajectory_id,
             static_cast<PoseGraph3D*>(pose_graph_.get()),
             local_slam_result_callback)));

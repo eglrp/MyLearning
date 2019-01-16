@@ -91,20 +91,20 @@ QueueKey OrderedMultiQueue::GetBlocker() const {
 
 void OrderedMultiQueue::Dispatch() {
   while (true) {
-    const Data* next_data = nullptr;
-    Queue* next_queue = nullptr;
-    QueueKey next_queue_key;
-    for (auto it = queues_.begin(); it != queues_.end();) {
-      const auto* data = it->second.queue.Peek<Data>();
-      if (data == nullptr) {
-        if (it->second.finished) {
+    const Data* next_data = nullptr;//初始化指向next_data的指针
+    Queue* next_queue = nullptr;//初始化指向next_queue的指针
+    QueueKey next_queue_key;//定义一个next_queue_key
+    for (auto it = queues_.begin(); it != queues_.end();) {//遍历queues_中的所有元素
+      const auto* data = it->second.queue.Peek<Data>();//获取Date指针
+      if (data == nullptr) {//Data指针为nullptr进行特殊处理
+        if (it->second.finished) {//如果finished标识为true，代表已经处理，将其抛弃并跳过本次循环
           queues_.erase(it++);
           continue;
         }
-        CannotMakeProgress(it->first);
+        CannotMakeProgress(it->first);//输出无法创建进程的警告
         return;
       }
-      if (next_data == nullptr || data->GetTime() < next_data->GetTime()) {
+      if (next_data == nullptr || data->GetTime() < next_data->GetTime()) {//将next指针只想当前的data
         next_data = data;
         next_queue = &it->second;
         next_queue_key = it->first;
@@ -113,7 +113,7 @@ void OrderedMultiQueue::Dispatch() {
           << "Non-sorted data added to queue: '" << it->first << "'";
       ++it;
     }
-    if (next_data == nullptr) {
+    if (next_data == nullptr) {//如果next_data为nullptr，说明queues_中没有要处理的数据
       CHECK(queues_.empty());
       return;
     }
@@ -123,23 +123,23 @@ void OrderedMultiQueue::Dispatch() {
     const common::Time common_start_time =
         GetCommonStartTime(next_queue_key.trajectory_id);
 
-    if (next_data->GetTime() >= common_start_time) {
+    if (next_data->GetTime() >= common_start_time) {//如果data时间已经大于common_start_time，调用回调函数
       // Happy case, we are beyond the 'common_start_time' already.
       last_dispatched_time_ = next_data->GetTime();
       next_queue->callback(next_queue->queue.Pop());
     } else if (next_queue->queue.Size() < 2) {
-      if (!next_queue->finished) {
+      if (!next_queue->finished) {//next_queue的长度小于2，且finished不是true，无法判定丢弃还是使用，返回
         // We cannot decide whether to drop or dispatch this yet.
         CannotMakeProgress(next_queue_key);
         return;
       }
       last_dispatched_time_ = next_data->GetTime();
-      next_queue->callback(next_queue->queue.Pop());
+      next_queue->callback(next_queue->queue.Pop());//调用回调函数
     } else {
       // We take a peek at the time after next data. If it also is not beyond
       // 'common_start_time' we drop 'next_data', otherwise we just found the
       // first packet to dispatch from this queue.
-      std::unique_ptr<Data> next_data_owner = next_queue->queue.Pop();
+      std::unique_ptr<Data> next_data_owner = next_queue->queue.Pop();//取下一个data的时间，如果还没有超过common_start_time，就把next_data丢弃
       if (next_queue->queue.Peek<Data>()->GetTime() > common_start_time) {
         last_dispatched_time_ = next_data->GetTime();
         next_queue->callback(std::move(next_data_owner));

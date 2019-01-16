@@ -134,7 +134,7 @@ void PoseExtrapolator::AddOdometryData(
 transform::Rigid3d PoseExtrapolator::ExtrapolatePose(const common::Time time) {
   const TimedPose& newest_timed_pose = timed_pose_queue_.back();
   CHECK_GE(time, newest_timed_pose.time);
-  if (cached_extrapolated_pose_.time != time) {
+  if (cached_extrapolated_pose_.time != time) {//如果和暂存的pose时间一样，不处理，直接返回暂存的pose
     const Eigen::Vector3d translation =
         ExtrapolateTranslation(time) + newest_timed_pose.pose.translation();
     const Eigen::Quaterniond rotation =

@@ -102,6 +102,8 @@ class CollatedTrajectoryBuilder : public TrajectoryBuilderInterface {
   const bool collate_landmarks_;
   const bool collate_fixed_frame_;
   const int trajectory_id_;
+  
+  //构建CollatedTrajectoryBuilder时传入了GlobalTrajectoryBuilder指针进行初始化
   std::unique_ptr<TrajectoryBuilderInterface> wrapped_trajectory_builder_;
 
   // Time at which we last logged the rates of incoming sensor data.

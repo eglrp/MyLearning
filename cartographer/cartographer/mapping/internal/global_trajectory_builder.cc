@@ -37,7 +37,7 @@ class GlobalTrajectoryBuilder : public mapping::TrajectoryBuilderInterface {
   // Passing a 'nullptr' for 'local_trajectory_builder' is acceptable, but no
   // 'TimedPointCloudData' may be added in that case.
   GlobalTrajectoryBuilder(
-      std::unique_ptr<LocalTrajectoryBuilder> local_trajectory_builder,
+      std::unique_ptr<LocalTrajectoryBuilder> local_trajectory_builder,//传入std::unique_ptr<LocalTrajectoryBuilder3D> local_trajectory_builder;
       const int trajectory_id, PoseGraph* const pose_graph,
       const LocalSlamResultCallback& local_slam_result_callback)
       : trajectory_id_(trajectory_id),
@@ -54,8 +54,8 @@ class GlobalTrajectoryBuilder : public mapping::TrajectoryBuilderInterface {
       const sensor::TimedPointCloudData& timed_point_cloud_data) override {
     CHECK(local_trajectory_builder_)
         << "Cannot add TimedPointCloudData without a LocalTrajectoryBuilder.";
-    std::unique_ptr<typename LocalTrajectoryBuilder::MatchingResult>
-        matching_result = local_trajectory_builder_->AddRangeData(
+    std::unique_ptr<typename LocalTrajectoryBuilder::MatchingResult>//定义一个MatchingResult指针matching_result
+        matching_result = local_trajectory_builder_->AddRangeData(//调用local_trajectory_builder_的AddRangeData
             sensor_id, timed_point_cloud_data);
     if (matching_result == nullptr) {
       // The range data has not been fully accumulated yet.
@@ -116,10 +116,10 @@ class GlobalTrajectoryBuilder : public mapping::TrajectoryBuilderInterface {
   }
 
   void AddLocalSlamResultData(std::unique_ptr<mapping::LocalSlamResultData>
-                                  local_slam_result_data) override {
+                                  local_slam_result_data) override {//从LocalSlamResultData::AddToTrajectoryBuilder中传入了指针absl::make_unique<LocalSlamResult3D>(*this)
     CHECK(!local_trajectory_builder_) << "Can't add LocalSlamResultData with "
                                          "local_trajectory_builder_ present.";
-    local_slam_result_data->AddToPoseGraph(trajectory_id_, pose_graph_);
+    local_slam_result_data->AddToPoseGraph(trajectory_id_, pose_graph_);//调用LocalSlamResultData的AddToPoseGraph函数
   }
 
  private:
