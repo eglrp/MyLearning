@@ -24,7 +24,11 @@ namespace cartographer {
 namespace sensor {
 
 namespace {
-
+/*
+对点云数据，根据指定范围max_range进行l2距离过滤，
+形参：   points，
+返回值： points
+*/
 PointCloud FilterByMaxRange(const PointCloud& point_cloud,
                             const float max_range) {
   PointCloud result;

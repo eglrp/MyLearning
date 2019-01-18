@@ -27,7 +27,11 @@
 
 namespace cartographer {
 namespace sensor {
-
+/*
+体素滤波器,对每一个体素voxel,采用第一个point代替所有的points
+VoxelFilter:不可拷贝/不可赋值
+默认构造函数指定体素边界大小
+*/
 // Voxel filter for point clouds. For each voxel, the assembled point cloud
 // contains the first point that fell into it from any of the inserted point
 // clouds.

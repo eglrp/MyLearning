@@ -131,15 +131,15 @@ void PoseExtrapolator::AddOdometryData(
       linear_velocity_in_tracking_frame_at_newest_odometry_time;
 }
 
-transform::Rigid3d PoseExtrapolator::ExtrapolatePose(const common::Time time) {
+transform::Rigid3d PoseExtrapolator::ExtrapolatePose(const common::Time time) {//更新位姿
   const TimedPose& newest_timed_pose = timed_pose_queue_.back();
   CHECK_GE(time, newest_timed_pose.time);
   if (cached_extrapolated_pose_.time != time) {//如果和暂存的pose时间一样，不处理，直接返回暂存的pose
     const Eigen::Vector3d translation =
-        ExtrapolateTranslation(time) + newest_timed_pose.pose.translation();
+        ExtrapolateTranslation(time) + newest_timed_pose.pose.translation();//当前时间间隔内的位移加上上一次的位置
     const Eigen::Quaterniond rotation =
         newest_timed_pose.pose.rotation() *
-        ExtrapolateRotation(time, extrapolation_imu_tracker_.get());
+        ExtrapolateRotation(time, extrapolation_imu_tracker_.get());//在上一时刻的旋转上叠加旋转增量
     cached_extrapolated_pose_ =
         TimedPose{time, transform::Rigid3d{translation, rotation}};
   }
@@ -224,22 +224,22 @@ void PoseExtrapolator::AdvanceImuTracker(const common::Time time,
   imu_tracker->Advance(time);
 }
 
-Eigen::Quaterniond PoseExtrapolator::ExtrapolateRotation(
+Eigen::Quaterniond PoseExtrapolator::ExtrapolateRotation(//计算间隔时间内的旋转
     const common::Time time, ImuTracker* const imu_tracker) const {
   CHECK_GE(time, imu_tracker->time());
   AdvanceImuTracker(time, imu_tracker);
-  const Eigen::Quaterniond last_orientation = imu_tracker_->orientation();
-  return last_orientation.inverse() * imu_tracker->orientation();
+  const Eigen::Quaterniond last_orientation = imu_tracker_->orientation();//上一时刻的旋转
+  return last_orientation.inverse() * imu_tracker->orientation();//计算旋转
 }
 
-Eigen::Vector3d PoseExtrapolator::ExtrapolateTranslation(common::Time time) {
+Eigen::Vector3d PoseExtrapolator::ExtrapolateTranslation(common::Time time) {//计算时间间隔内的位移变化
   const TimedPose& newest_timed_pose = timed_pose_queue_.back();
   const double extrapolation_delta =
-      common::ToSeconds(time - newest_timed_pose.time);
-  if (odometry_data_.size() < 2) {
-    return extrapolation_delta * linear_velocity_from_poses_;
+      common::ToSeconds(time - newest_timed_pose.time);//计算时间间隔
+  if (odometry_data_.size() < 2) {//判断里程计数据是否为多个
+    return extrapolation_delta * linear_velocity_from_poses_;//使用位姿计算位移
   }
-  return extrapolation_delta * linear_velocity_from_odometry_;
+  return extrapolation_delta * linear_velocity_from_odometry_;//使用里程计数据计算位移
 }
 
 }  // namespace mapping

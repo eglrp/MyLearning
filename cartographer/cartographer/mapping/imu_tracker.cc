@@ -25,7 +25,11 @@
 
 namespace cartographer {
 namespace mapping {
-
+/*
+imu_gravity_time_constant = 10.,
+num_odometry_states = 1000,
+构造函数初始化
+*/
 ImuTracker::ImuTracker(const double imu_gravity_time_constant,
                        const common::Time time)
     : imu_gravity_time_constant_(imu_gravity_time_constant),
@@ -35,17 +39,25 @@ ImuTracker::ImuTracker(const double imu_gravity_time_constant,
       gravity_vector_(Eigen::Vector3d::UnitZ()),
       imu_angular_velocity_(Eigen::Vector3d::Zero()) {}
 
-void ImuTracker::Advance(const common::Time time) {
+void ImuTracker::Advance(const common::Time time) {//姿态更新
   CHECK_LE(time_, time);
-  const double delta_t = common::ToSeconds(time - time_);
+  const double delta_t = common::ToSeconds(time - time_);//计算间隔时间
   const Eigen::Quaterniond rotation =
-      transform::AngleAxisVectorToRotationQuaternion(
+      transform::AngleAxisVectorToRotationQuaternion(//使用imu角速度计算选转四元数
           Eigen::Vector3d(imu_angular_velocity_ * delta_t));
-  orientation_ = (orientation_ * rotation).normalized();
-  gravity_vector_ = rotation.conjugate() * gravity_vector_;
-  time_ = time;
+  orientation_ = (orientation_ * rotation).normalized();//在原来的四元素上更新旋转，并归一化
+  gravity_vector_ = rotation.conjugate() * gravity_vector_;//更新重力矢量测量输出
+  time_ = time;//更新时间戳
 }
+/*
+更新imu测量得到的加速度。
+参数：vector3d，测量值
+1),dt=t_-t;
+2),alpha=1-e^(-dt/g);
+3),gravity_vector_=(1-alpha)*gv_+alpha*imu_line;
+4),更新orientation_
 
+*/
 void ImuTracker::AddImuLinearAccelerationObservation(
     const Eigen::Vector3d& imu_linear_acceleration) {
   // Update the 'gravity_vector_' with an exponential moving average using the
@@ -55,19 +67,21 @@ void ImuTracker::AddImuLinearAccelerationObservation(
           ? common::ToSeconds(time_ - last_linear_acceleration_time_)
           : std::numeric_limits<double>::infinity();
   last_linear_acceleration_time_ = time_;
-  const double alpha = 1. - std::exp(-delta_t / imu_gravity_time_constant_);
+  const double alpha = 1. - std::exp(-delta_t / imu_gravity_time_constant_);//计算一阶低通alpha
   gravity_vector_ =
-      (1. - alpha) * gravity_vector_ + alpha * imu_linear_acceleration;
+      (1. - alpha) * gravity_vector_ + alpha * imu_linear_acceleration;//对imu测量的重力矢量进行一阶低通滤波
   // Change the 'orientation_' so that it agrees with the current
   // 'gravity_vector_'.
   const Eigen::Quaterniond rotation = Eigen::Quaterniond::FromTwoVectors(
-      gravity_vector_, orientation_.conjugate() * Eigen::Vector3d::UnitZ());
-  orientation_ = (orientation_ * rotation).normalized();
+      gravity_vector_, orientation_.conjugate() * Eigen::Vector3d::UnitZ());//计算重力测量值和姿态四元数之间的选转四元数
+  orientation_ = (orientation_ * rotation).normalized();//对姿态四元数进行修正
   CHECK_GT((orientation_ * gravity_vector_).z(), 0.);
   CHECK_GT((orientation_ * gravity_vector_).normalized().z(), 0.99);
 }
-
-void ImuTracker::AddImuAngularVelocityObservation(
+/*
+更新imu测量得到的角速度
+*/
+void ImuTracker::AddImuAngularVelocityObservation(//添加imu角速度观测值
     const Eigen::Vector3d& imu_angular_velocity) {
   imu_angular_velocity_ = imu_angular_velocity;
 }

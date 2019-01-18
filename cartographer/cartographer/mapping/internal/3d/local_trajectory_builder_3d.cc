@@ -123,7 +123,7 @@ LocalTrajectoryBuilder3D::AddRangeData(
     const sensor::TimedPointCloudData& unsynchronized_data) {
   const auto synchronized_data =
       range_data_collator_.AddRangeData(sensor_id, unsynchronized_data);//将非同步的数据添加到同步器内,返回sensor::TimedPointCloudOriginData
-  if (synchronized_data.ranges.empty()) {
+  if (synchronized_data.ranges.empty()) {//同步数据ranges为空，返回空指针
     LOG(INFO) << "Range data collator filling buffer.";
     return nullptr;
   }
@@ -141,20 +141,24 @@ LocalTrajectoryBuilder3D::AddRangeData(
   const common::Time time_first_point =
       current_sensor_time +
       common::FromSeconds(synchronized_data.ranges.front().point_time.time);//获取第一个点的时间
-  if (time_first_point < extrapolator_->GetLastPoseTime()) {
+  if (time_first_point < extrapolator_->GetLastPoseTime()) {//判断Extrapolator是否完成初始化，否则返回空指针
     LOG(INFO) << "Extrapolator is still initializing.";
     return nullptr;
   }
-
+/*  struct RangeMeasurement {
+    TimedRangefinderPoint point_time;
+    size_t origin_index;
+  };
+*/
   std::vector<sensor::TimedPointCloudOriginData::RangeMeasurement> hits =
       sensor::VoxelFilter(0.5f * options_.voxel_filter_size())
           .Filter(synchronized_data.ranges);//对雷达测量数据进行体素滤波
 
   std::vector<transform::Rigid3f> hits_poses;
-  hits_poses.reserve(hits.size());
+  hits_poses.reserve(hits.size());//将容量设为hits长度
   bool warned = false;
 
-  for (const auto& hit : hits) {
+  for (const auto& hit : hits) {//遍历hits中的所有测量数据
     common::Time time_point =//获取当前点的时间
         current_sensor_time + common::FromSeconds(hit.point_time.time);
     if (time_point < extrapolator_->GetLastExtrapolatedTime()) {//如果当前点时间比上一次处理的时间小，告警
@@ -164,7 +168,7 @@ LocalTrajectoryBuilder3D::AddRangeData(
             << extrapolator_->GetLastExtrapolatedTime() << " to " << time_point;
         warned = true;
       }
-      time_point = extrapolator_->GetLastExtrapolatedTime();
+      time_point = extrapolator_->GetLastExtrapolatedTime();//设置当前点的时间为上一次处理的时间
     }
     hits_poses.push_back(
         extrapolator_->ExtrapolatePose(time_point).cast<float>());
@@ -177,11 +181,11 @@ LocalTrajectoryBuilder3D::AddRangeData(
 
   for (size_t i = 0; i < hits.size(); ++i) {
     sensor::RangefinderPoint hit_in_local =
-        hits_poses[i] * sensor::ToRangefinderPoint(hits[i].point_time);
+        hits_poses[i] * sensor::ToRangefinderPoint(hits[i].point_time);//hits转换为RangefinderPoint，并用转移矩阵进行坐标变换
     const Eigen::Vector3f origin_in_local =
-        hits_poses[i] * synchronized_data.origins.at(hits[i].origin_index);
-    const Eigen::Vector3f delta = hit_in_local.position - origin_in_local;
-    const float range = delta.norm();
+        hits_poses[i] * synchronized_data.origins.at(hits[i].origin_index);//求hits对应的源坐标
+    const Eigen::Vector3f delta = hit_in_local.position - origin_in_local;//计算偏移矢量
+    const float range = delta.norm();//求模长
     if (range >= options_.min_range()) {
       if (range <= options_.max_range()) {
         accumulated_range_data_.returns.push_back(hit_in_local);
@@ -190,39 +194,39 @@ LocalTrajectoryBuilder3D::AddRangeData(
         // maximum range. This way the free space up to the maximum range will
         // be updated.
         hit_in_local.position =
-            origin_in_local + options_.max_range() / range * delta;
+            origin_in_local + options_.max_range() / range * delta;//如果长度超出了设置的最大长度，将长度缩放至最大长度
         accumulated_range_data_.misses.push_back(hit_in_local);
       }
     }
   }
   ++num_accumulated_;
 
-  if (num_accumulated_ >= options_.num_accumulated_range_data()) {
+  if (num_accumulated_ >= options_.num_accumulated_range_data()) {//accumulated_range_data_计数达到设定的大小
     absl::optional<common::Duration> sensor_duration;
     if (last_sensor_time_.has_value()) {
-      sensor_duration = current_sensor_time - last_sensor_time_.value();
+      sensor_duration = current_sensor_time - last_sensor_time_.value();//计算sensor数据间隔时间
     }
-    last_sensor_time_ = current_sensor_time;
-    num_accumulated_ = 0;
+    last_sensor_time_ = current_sensor_time;//更新记录的last_sensor_time_
+    num_accumulated_ = 0;//accumulated_range_data_计数复位
 
     transform::Rigid3f current_pose =
-        extrapolator_->ExtrapolatePose(current_sensor_time).cast<float>();
+        extrapolator_->ExtrapolatePose(current_sensor_time).cast<float>();//更新位姿
 
-    const auto voxel_filter_start = std::chrono::steady_clock::now();
-    const sensor::RangeData filtered_range_data = {
+    const auto voxel_filter_start = std::chrono::steady_clock::now();//获取当前时间记为voxel_filter_start
+    const sensor::RangeData filtered_range_data = {//对accumulated_range_data_的returns和misses进行滤波，得到滤波后的filtered_range_data
         current_pose.translation(),
         sensor::VoxelFilter(options_.voxel_filter_size())
             .Filter(accumulated_range_data_.returns),
         sensor::VoxelFilter(options_.voxel_filter_size())
             .Filter(accumulated_range_data_.misses)};
-    const auto voxel_filter_stop = std::chrono::steady_clock::now();
-    const auto voxel_filter_duration = voxel_filter_stop - voxel_filter_start;
+    const auto voxel_filter_stop = std::chrono::steady_clock::now();//获取当前时间
+    const auto voxel_filter_duration = voxel_filter_stop - voxel_filter_start;//计算滤波消耗的时间
 
     if (sensor_duration.has_value()) {
       const double voxel_filter_fraction =
           common::ToSeconds(voxel_filter_duration) /
-          common::ToSeconds(sensor_duration.value());
-      kLocalSlamVoxelFilterFraction->Set(voxel_filter_fraction);
+          common::ToSeconds(sensor_duration.value());//计算滤波分数=滤波时间长度/传感器时间间隔
+      kLocalSlamVoxelFilterFraction->Set(voxel_filter_fraction);//存储滤波分数
     }
 
     return AddAccumulatedRangeData(

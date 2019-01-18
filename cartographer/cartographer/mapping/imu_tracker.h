@@ -22,7 +22,18 @@
 
 namespace cartographer {
 namespace mapping {
+/*
+ImuTracker
+作用：使用来自imu的角速度+加速度用于跟踪pose的orientation
 
+构造函数指定重力加速度g和最新测量时间。
+数据成员包含
+1,加速度g
+2,测量时间
+3,方向,四元数
+4,三个加速度3d
+5,imu角速度
+*/
 // Keeps track of the orientation using angular velocities and linear
 // accelerations from an IMU. Because averaged linear acceleration (assuming
 // slow movement) is a direct measurement of gravity, roll/pitch does not drift,
@@ -32,6 +43,7 @@ class ImuTracker {
   ImuTracker(double imu_gravity_time_constant, common::Time time);
 
   // Advances to the given 'time' and updates the orientation to reflect this.
+  // 系统时间增加t，更新方向角
   void Advance(common::Time time);
 
   // Updates from an IMU reading (in the IMU frame).
@@ -43,16 +55,16 @@ class ImuTracker {
   // Query the current time.
   common::Time time() const { return time_; }
 
-  // Query the current orientation estimate.
+  // Query the current orientation estimate.返回目前估计pose的方向角。
   Eigen::Quaterniond orientation() const { return orientation_; }
 
  private:
-  const double imu_gravity_time_constant_;
-  common::Time time_;
-  common::Time last_linear_acceleration_time_;
-  Eigen::Quaterniond orientation_;
-  Eigen::Vector3d gravity_vector_;
-  Eigen::Vector3d imu_angular_velocity_;
+  const double imu_gravity_time_constant_;//重力常量
+  common::Time time_;//最新一次测量时间
+  common::Time last_linear_acceleration_time_;//加速度测量时间
+  Eigen::Quaterniond orientation_;//pose的方向角
+  Eigen::Vector3d gravity_vector_;//加速度测量的方向
+  Eigen::Vector3d imu_angular_velocity_;//角速度
 };
 
 }  // namespace mapping
