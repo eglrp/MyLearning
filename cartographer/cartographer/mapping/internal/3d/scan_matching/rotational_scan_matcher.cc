@@ -41,12 +41,12 @@ void AddValueToHistogram(float angle, const float value,
   }
   while (angle < 0.f) {
     angle += static_cast<float>(M_PI);
-  }
-  const float zero_to_one = angle / static_cast<float>(M_PI);
+  }//变换angle到[0, pi),
+  const float zero_to_one = angle / static_cast<float>(M_PI);//计算刻度0~1
   const int bucket = common::Clamp<int>(
       common::RoundToInt(histogram->size() * zero_to_one - 0.5f), 0,
-      histogram->size() - 1);
-  (*histogram)(bucket) += value;
+      histogram->size() - 1);//根据zero_to_one计算value对应的histogram序号
+  (*histogram)(bucket) += value;//value加到histogram中对应元素上
 }
 
 Eigen::Vector3f ComputeCentroid(const sensor::PointCloud& slice) {
@@ -68,12 +68,12 @@ void AddPointCloudSliceToHistogram(const sensor::PointCloud& slice,
   // will add the angle between points to the histogram with the maximum weight.
   // This is to reject, e.g., the angles observed on the ceiling and floor.
   const Eigen::Vector3f centroid = ComputeCentroid(slice);
-  Eigen::Vector3f last_point_position = slice.front().position;
-  for (const sensor::RangefinderPoint& point : slice) {
+  Eigen::Vector3f last_point_position = slice.front().position;//记last_point_position为第一个点
+  for (const sensor::RangefinderPoint& point : slice) {//遍历每一个点
     const Eigen::Vector2f delta =
-        (point.position - last_point_position).head<2>();
-    const Eigen::Vector2f direction = (point.position - centroid).head<2>();
-    const float distance = delta.norm();
+        (point.position - last_point_position).head<2>();//计算该点和last_point_position之间的水平坐标差值
+    const Eigen::Vector2f direction = (point.position - centroid).head<2>();//计算该点与图心之间的水平方向
+    const float distance = delta.norm();//计算水平距离
     if (distance < kMinDistance || direction.norm() < kMinDistance) {
       continue;
     }
@@ -83,7 +83,7 @@ void AddPointCloudSliceToHistogram(const sensor::PointCloud& slice,
     }
     const float angle = common::atan2(delta);
     const float value = std::max(
-        0.f, 1.f - std::abs(delta.normalized().dot(direction.normalized())));
+        0.f, 1.f - std::abs(delta.normalized().dot(direction.normalized())));//1减去delta和direction的余弦值,表征相邻点连线的方向
     AddValueToHistogram(angle, value, histogram);
   }
 }
@@ -161,7 +161,7 @@ Eigen::VectorXf RotationalScanMatcher::ComputeHistogram(
     const sensor::PointCloud& point_cloud, const int histogram_size) {
   Eigen::VectorXf histogram = Eigen::VectorXf::Zero(histogram_size);
   std::map<int, sensor::PointCloud> slices;
-  for (const sensor::RangefinderPoint& point : point_cloud) {
+  for (const sensor::RangefinderPoint& point : point_cloud) {//将点云按照Z坐标进行分层
     slices[common::RoundToInt(point.position.z() / kSliceHeight)].push_back(
         point);
   }

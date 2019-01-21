@@ -93,7 +93,7 @@ void CeresScanMatcher3D::Match(
     const sensor::PointCloud& point_cloud =
         *point_clouds_and_hybrid_grids[i].first;
     const HybridGrid& hybrid_grid = *point_clouds_and_hybrid_grids[i].second;
-    problem.AddResidualBlock(
+    problem.AddResidualBlock(//添加点云匹配的误差块
         OccupiedSpaceCostFunction3D::CreateAutoDiffCostFunction(
             options_.occupied_space_weight(i) /
                 std::sqrt(static_cast<double>(point_cloud.size())),
@@ -102,12 +102,12 @@ void CeresScanMatcher3D::Match(
         ceres_pose.rotation());
   }
   CHECK_GT(options_.translation_weight(), 0.);
-  problem.AddResidualBlock(
+  problem.AddResidualBlock(//添加位移的误差块
       TranslationDeltaCostFunctor3D::CreateAutoDiffCostFunction(
           options_.translation_weight(), target_translation),
       nullptr /* loss function */, ceres_pose.translation());
   CHECK_GT(options_.rotation_weight(), 0.);
-  problem.AddResidualBlock(
+  problem.AddResidualBlock(//添加旋转的误差块
       RotationDeltaCostFunctor3D::CreateAutoDiffCostFunction(
           options_.rotation_weight(), initial_pose_estimate.rotation()),
       nullptr /* loss function */, ceres_pose.rotation());

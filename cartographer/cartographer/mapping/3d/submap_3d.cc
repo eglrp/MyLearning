@@ -276,19 +276,19 @@ void Submap3D::InsertData(const sensor::RangeData& range_data_in_local,
   CHECK(!insertion_finished());
   // Transform range data into submap frame.
   const sensor::RangeData transformed_range_data = sensor::TransformRangeData(
-      range_data_in_local, local_pose().inverse().cast<float>());
+      range_data_in_local, local_pose().inverse().cast<float>());//点云转换到submap坐标系下
   range_data_inserter.Insert(
       FilterRangeDataByMaxRange(transformed_range_data,
                                 high_resolution_max_range),
-      high_resolution_hybrid_grid_.get());
+      high_resolution_hybrid_grid_.get());//点云插入到高分辨率grid中
   range_data_inserter.Insert(transformed_range_data,
-                             low_resolution_hybrid_grid_.get());
-  set_num_range_data(num_range_data() + 1);
+                             low_resolution_hybrid_grid_.get());//点云插入到低分辨率grid中
+  set_num_range_data(num_range_data() + 1);//num_range_data计数加1
   const float yaw_in_submap_from_gravity = transform::GetYaw(
-      local_pose().inverse().rotation() * local_from_gravity_aligned);
+      local_pose().inverse().rotation() * local_from_gravity_aligned);//获得submap坐标与local坐标航向偏差
   rotational_scan_matcher_histogram_ +=
       scan_matching::RotationalScanMatcher::RotateHistogram(
-          scan_histogram_in_gravity, yaw_in_submap_from_gravity);
+          scan_histogram_in_gravity, yaw_in_submap_from_gravity);//旋转Histogram
 }
 
 void Submap3D::Finish() {
@@ -309,19 +309,19 @@ std::vector<std::shared_ptr<const Submap3D>> ActiveSubmaps3D::InsertData(
     const sensor::RangeData& range_data,
     const Eigen::Quaterniond& local_from_gravity_aligned,
     const Eigen::VectorXf& rotational_scan_matcher_histogram_in_gravity) {
-  if (submaps_.empty() ||
-      submaps_.back()->num_range_data() == options_.num_range_data()) {
+  if (submaps_.empty() ||//submaps_为空
+      submaps_.back()->num_range_data() == options_.num_range_data()) {//如果submaps_中最新的自地图中num_range_data达到了设定值
     AddSubmap(transform::Rigid3d(range_data.origin.cast<double>(),
                                  local_from_gravity_aligned),
-              rotational_scan_matcher_histogram_in_gravity.size());
+              rotational_scan_matcher_histogram_in_gravity.size());//添加新的submap,保持进行点云插入的submap只有两个
   }
-  for (auto& submap : submaps_) {
+  for (auto& submap : submaps_) {//在两个submap中插入点云
     submap->InsertData(range_data, range_data_inserter_,
                        options_.high_resolution_max_range(),
                        local_from_gravity_aligned,
                        rotational_scan_matcher_histogram_in_gravity);
   }
-  if (submaps_.front()->num_range_data() == 2 * options_.num_range_data()) {
+  if (submaps_.front()->num_range_data() == 2 * options_.num_range_data()) {//
     submaps_.front()->Finish();
   }
   return submaps();

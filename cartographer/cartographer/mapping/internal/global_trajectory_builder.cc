@@ -55,7 +55,7 @@ class GlobalTrajectoryBuilder : public mapping::TrajectoryBuilderInterface {
     CHECK(local_trajectory_builder_)
         << "Cannot add TimedPointCloudData without a LocalTrajectoryBuilder.";
     std::unique_ptr<typename LocalTrajectoryBuilder::MatchingResult>//定义一个MatchingResult指针matching_result
-        matching_result = local_trajectory_builder_->AddRangeData(//调用local_trajectory_builder_的AddRangeData
+        matching_result = local_trajectory_builder_->AddRangeData(//调用local_trajectory_builder_的AddRangeData,得到MatchingResult
             sensor_id, timed_point_cloud_data);
     if (matching_result == nullptr) {
       // The range data has not been fully accumulated yet.

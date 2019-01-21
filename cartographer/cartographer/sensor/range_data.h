@@ -25,14 +25,22 @@
 namespace cartographer {
 namespace sensor {
 
+
+/*
+RangeData:
+数据成员包括
+1),原始位置,{x0,y0,z0}
+2),返回点云,{x,y,z}
+3),缺失点云,标识free space.
+*/
 // Rays begin at 'origin'. 'returns' are the points where obstructions were
 // detected. 'misses' are points in the direction of rays for which no return
 // was detected, and were inserted at a configured distance. It is assumed that
 // between the 'origin' and 'misses' is free space.
 struct RangeData {
-  Eigen::Vector3f origin;
-  PointCloud returns;
-  PointCloud misses;
+  Eigen::Vector3f origin;//{x0,y0,z0},sensor坐标。
+  PointCloud returns;//反射位置{x,y,z}，表征有物体反射。
+  PointCloud misses;//无反射,自由空间
 };
 
 // Like 'RangeData', but with 'TimedPointClouds'.
@@ -41,16 +49,16 @@ struct TimedRangeData {
   TimedPointCloud returns;
   TimedPointCloud misses;
 };
-
+//坐标变换
 RangeData TransformRangeData(const RangeData& range_data,
                              const transform::Rigid3f& transform);
-
+//坐标变换
 TimedRangeData TransformTimedRangeData(const TimedRangeData& range_data,
                                        const transform::Rigid3f& transform);
-
+//根据min_z和max_z把不在z轴范围内的点云丢弃，剪裁到给定范围
 // Crops 'range_data' according to the region defined by 'min_z' and 'max_z'.
 RangeData CropRangeData(const RangeData& range_data, float min_z, float max_z);
-
+//根据min_z和max_z把不在z轴范围内的点云丢弃，剪裁到给定范围
 // Crops 'range_data' according to the region defined by 'min_z' and 'max_z'.
 TimedRangeData CropTimedRangeData(const TimedRangeData& range_data, float min_z,
                                   float max_z);

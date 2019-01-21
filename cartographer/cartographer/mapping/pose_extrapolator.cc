@@ -75,15 +75,15 @@ void PoseExtrapolator::AddPose(const common::Time time,
     imu_tracker_ =
         absl::make_unique<ImuTracker>(gravity_time_constant_, tracker_start);
   }
-  timed_pose_queue_.push_back(TimedPose{time, pose});
+  timed_pose_queue_.push_back(TimedPose{time, pose});//更新timed_pose_queue_,丢掉之前的数据
   while (timed_pose_queue_.size() > 2 &&
          timed_pose_queue_[1].time <= time - pose_queue_duration_) {
     timed_pose_queue_.pop_front();
   }
-  UpdateVelocitiesFromPoses();
-  AdvanceImuTracker(time, imu_tracker_.get());
-  TrimImuData();
-  TrimOdometryData();
+  UpdateVelocitiesFromPoses();//根据两个时刻的位姿数据计算角速度和线速度
+  AdvanceImuTracker(time, imu_tracker_.get());//更新imu惯性更新计算
+  TrimImuData();//裁剪imu数据
+  TrimOdometryData();//裁剪里程计数据
   odometry_imu_tracker_ = absl::make_unique<ImuTracker>(*imu_tracker_);
   extrapolation_imu_tracker_ = absl::make_unique<ImuTracker>(*imu_tracker_);
 }
