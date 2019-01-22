@@ -3,3 +3,4 @@ bazel-*
 *.si4project
 *.kdev4
 .idea
+devel
